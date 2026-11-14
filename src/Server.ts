@@ -12,7 +12,7 @@ import { SystemPromptFor } from "./Config.js";
 import { ReloadReleased } from "./Models.js";
 import { StatsAge, StatsFor } from "./Stats.js";
 import { GetLimits, GetBreakdown, PollUsage, RefreshConversationContext, SignIn } from "./ClaudeSession.js";
-import { OnBroadcast, OnJobQueued, OnOpenChat, OpenChatIn, Take as TakeStudioJob, Deliver as DeliverStudio, Request as RequestStudio, Presence as StudioPresence, Serving, Booted } from "./Studio.js";
+import { Broadcast, OnBroadcast, OnJobQueued, OnOpenChat, OpenChatIn, Take as TakeStudioJob, Deliver as DeliverStudio, Request as RequestStudio, Presence as StudioPresence, Serving, Booted } from "./Studio.js";
 import { StudioTools } from "./Tools.js";
 import { WatchNotes } from "./Notes.js";
 import type { Reacher, ReacherIn } from "./Tools.js";
@@ -361,7 +361,14 @@ async function HandleConversations(Request: IncomingMessage, Response: ServerRes
       return;
     }
 
-    SendJson(Response, RenameConversation(Id, Title) ? 200 : 404, {
+    const Renamed = RenameConversation(Id, Title);
+
+    // Every window's chat list shows the new name at once, also when it was renamed elsewhere (e.g. from Discord).
+    if (Renamed) {
+      setImmediate(() => Broadcast("conversations"));
+    }
+
+    SendJson(Response, Renamed ? 200 : 404, {
       id: Id,
       title: Title,
     });
